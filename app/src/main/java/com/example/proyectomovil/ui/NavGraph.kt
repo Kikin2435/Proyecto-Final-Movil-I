@@ -18,7 +18,7 @@ sealed class Pantalla(val ruta: String) {
 @Composable
 fun AppNavHost(navController: NavHostController = rememberNavController()) {
     NavHost(navController = navController, startDestination = Pantalla.Principal.ruta) {
-        composable(Pantalla.Principal.ruta) { PantallaPrincipal(navController) }
+        composable(Pantalla.Principal.ruta) { PantallaPrincipal(navController ) }
         composable(Pantalla.CrearNota.ruta) { PantallaCrearNota(navController) }
         composable(Pantalla.CrearTarea.ruta) { PantallaCrearTarea(navController) }
     }
