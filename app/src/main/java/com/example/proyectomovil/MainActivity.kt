@@ -4,16 +4,38 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.example.proyectomovil.ui.AppNavHost
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.navigation.compose.rememberNavController
+import com.example.proyectomovil.ui.MainScreen
+import com.example.proyectomovil.ui.MainScreenRail
 import com.example.proyectomovil.ui.theme.ProyectoMovilTheme
 
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             ProyectoMovilTheme {
-                AppNavHost()
+                val windowSizeClass = calculateWindowSizeClass(this)
+                val navController = rememberNavController()
+
+                when (windowSizeClass.widthSizeClass) {
+                    // PANTALLA GRANDE
+                    WindowWidthSizeClass.Compact -> {
+                        MainScreen(navController)
+                    }
+                    // PANTALLA GRANDE
+                    WindowWidthSizeClass.Medium, WindowWidthSizeClass.Expanded -> {
+                        MainScreenRail(navController)
+                    }
+                    // POR SI NO
+                    else -> {
+                        MainScreen(navController)
+                    }
+                }
             }
         }
     }

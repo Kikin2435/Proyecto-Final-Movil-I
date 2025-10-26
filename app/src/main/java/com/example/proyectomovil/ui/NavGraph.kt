@@ -10,9 +10,9 @@ import com.example.proyectomovil.ui.pantallas.PantallaCrearTarea
 import com.example.proyectomovil.ui.pantallas.PantallaPrincipal
 
 sealed class Pantalla(val ruta: String) {
-    object Principal : Pantalla("principal")
-    object CrearNota : Pantalla("crear_nota")
-    object CrearTarea : Pantalla("crear_tarea")
+    object Principal : Pantalla("pantalla_principal")
+    object CrearNota : Pantalla("pantalla_crear_nota")
+    object CrearTarea : Pantalla("pantalla_crear_tarea")
 }
 
 @Composable

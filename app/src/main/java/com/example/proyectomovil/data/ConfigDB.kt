@@ -4,18 +4,25 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.example.proyectomovil.data.model.ArchivoMultimedia
+import com.example.proyectomovil.data.dao.ArchivosMulitmediaDao
+import com.example.proyectomovil.data.dao.NotaDao
+import com.example.proyectomovil.data.dao.NotificacionesDao
+import com.example.proyectomovil.data.dao.TareaDao
+import com.example.proyectomovil.data.model.ArchivosMultimedia
 import com.example.proyectomovil.data.model.Nota
-import com.example.proyectomovil.data.model.Notificaciones
+import com.example.proyectomovil.data.model.Notificacion
+import com.example.proyectomovil.data.model.Tarea
 
 @Database(
-    entities = [Nota::class, Notificaciones::class, ArchivoMultimedia::class],
-    version = 1,
+    entities = [Nota::class, Notificacion::class, ArchivosMultimedia::class, Tarea::class],
+    version = 5,
      exportSchema = false
 )
 abstract class ConfigDB : RoomDatabase(){
     abstract fun notaDao(): NotaDao
-    // AQUI PODEMOS HACER EL LLAMADO DE LOS DAOS DE NOTIFICACIONES Y ARCHIVOSMULTIMEDIA
+    abstract fun notificacionDao(): NotificacionesDao
+    abstract fun archivosMultimediaDao(): ArchivosMulitmediaDao
+    abstract fun tareaDao(): TareaDao
 
     companion object {
         @Volatile

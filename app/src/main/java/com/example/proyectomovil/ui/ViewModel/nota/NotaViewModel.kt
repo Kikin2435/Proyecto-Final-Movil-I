@@ -1,11 +1,11 @@
-package com.example.proyectomovil.ui.screens.nota
+package com.example.proyectomovil.ui.ViewModel.nota
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.proyectomovil.data.NotaRepository
+import com.example.proyectomovil.data.Repository.NotaRepository
 import com.example.proyectomovil.data.model.Nota
 import kotlinx.coroutines.launch
 
@@ -25,6 +25,17 @@ class NotaViewModel(private val notaRepository: NotaRepository): ViewModel(){
 
         viewModelScope.launch {
             notaRepository.insertarNota(
+                Nota(
+                    titulo = notaUiState.titulo,
+                    contenido = notaUiState.contenido
+                )
+            )
+        }
+    }
+
+    fun actualizarNota(){
+        viewModelScope.launch {
+            notaRepository.actualizarNota(
                 Nota(
                     titulo = notaUiState.titulo,
                     contenido = notaUiState.contenido

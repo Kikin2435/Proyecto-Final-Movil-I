@@ -10,10 +10,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.proyectomovil.ui.AppViewModelProvider
-import com.example.proyectomovil.ui.Pantalla
-import com.example.proyectomovil.ui.screens.home.HomeViewModel
-import com.example.proyectomovil.ui.screens.nota.NotaUiState
-import com.example.proyectomovil.ui.screens.nota.NotaViewModel
+import com.example.proyectomovil.ui.ViewModel.nota.NotaUiState
+import com.example.proyectomovil.ui.ViewModel.nota.NotaViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
