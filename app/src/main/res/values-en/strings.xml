@@ -1,0 +1,31 @@
+<resources>
+    <string name="app_name">ProjectMobile</string>
+
+    <string name="crear_tarea_titulo_pantalla">Create Task</string>
+    <string name="crear_nota_titulo_pantalla">Create Note</string>
+    <string name="actualizar_nota_titulo_pantalla">Update Note</string>
+    <string name="actualizar_tarea_titulo_pantalla">Update Task</string>
+    <string name="campo_titulo">Title</string>
+    <string name="campo_contenido">Content</string>
+    <string name="campo_fecha">Date</string>
+    <string name="campo_hora">Time</string>
+    <string name="boton_guardar">Save</string>
+    <string name="boton_regresar">Back</string>
+    <string name="boton_aceptar">Accept</string>
+    <string name="boton_cancelar">Cancel</string>
+    <string name="boton_eliminar">Delete</string>
+
+    <string name="tab_notas">Notes</string>
+    <string name="tab_tareas">Tasks</string>
+    <string name="boton_crear_nota">Create Note</string>
+    <string name="boton_crear_tarea">Create Task</string>
+
+    <string name="nav_inicio">Main</string>
+    <string name="nav_nota">New Nota</string>
+    <string name="nav_tarea">New Tarea</string>
+    <string name="nav_configuracion">Settings</string>
+
+    <string name="detalle_cargando">Loading...</string>
+    <string name="detalle_creado_el">Created on: %1$s</string>
+
+</resources>

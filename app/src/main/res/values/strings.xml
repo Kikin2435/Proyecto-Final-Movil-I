@@ -1,3 +1,35 @@
 <resources>
     <string name="app_name">ProyectoMovil</string>
+
+    <!-- PantallaCrearTarea -->
+    <string name="crear_tarea_titulo_pantalla">Crear Tarea</string>
+    <string name="crear_nota_titulo_pantalla">Crear Nota</string>
+    <string name="actualizar_nota_titulo_pantalla">Actualizar Nota</string>
+    <string name="actualizar_tarea_titulo_pantalla">Actualizar Tarea</string>
+
+    <string name="campo_titulo">Título</string>
+    <string name="campo_contenido">Contenido</string>
+    <string name="campo_fecha">Fecha</string>
+    <string name="campo_hora">Hora</string>
+    <string name="boton_guardar">Guardar</string>
+    <string name="boton_regresar">Regresar</string>
+    <string name="boton_aceptar">Aceptar</string>
+    <string name="boton_cancelar">Cancelar</string>
+    <string name="boton_eliminar">Eliminar</string>
+
+    <!-- PantallaPrincipal -->
+    <string name="tab_notas">Notas</string>
+    <string name="tab_tareas">Tareas</string>
+    <string name="boton_crear_nota">Crear nota</string>
+    <string name="boton_crear_tarea">Crear tarea</string>
+
+    <string name="nav_inicio">Inicio</string>
+    <string name="nav_nota">Nueva Nota</string>
+    <string name="nav_tarea">Nueva Tarea</string>
+    <string name="nav_configuracion">Configuracion</string>
+
+    <!-- PantallaDetalle Nota y Tarea -->
+    <string name="detalle_cargando">Cargando...</string>
+    <string name="detalle_creado_el">Creado el: %1$s</string>
+
 </resources>

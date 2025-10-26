@@ -43,6 +43,8 @@ android {
 }
 
 dependencies {
+    implementation(libs.protolite.well.known.types)
+    implementation(libs.androidx.appcompat)
     val room_version = "2.6.1"
 
     implementation(libs.androidx.core.ktx)
@@ -58,6 +60,13 @@ dependencies {
     implementation("androidx.room:room-runtime:$room_version")
     kapt("androidx.room:room-compiler:$room_version")
     implementation("androidx.room:room-ktx:$room_version")
+    implementation("androidx.compose.material3:material3-window-size-class:1.2.0")
+
+    implementation("androidx.compose.material3:material3:1.3.0")
+    implementation("androidx.compose.material3:material3-window-size-class:1.3.0")
+    implementation("androidx.navigation:navigation-compose:2.8.3")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

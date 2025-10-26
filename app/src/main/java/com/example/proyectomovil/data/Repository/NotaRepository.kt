@@ -1,7 +1,7 @@
-package com.example.proyectomovil.data
+package com.example.proyectomovil.data.Repository
 
 import com.example.proyectomovil.data.model.Nota
-import com.example.proyectomovil.data.NotaDao
+import com.example.proyectomovil.data.dao.NotaDao
 import kotlinx.coroutines.flow.Flow
 
 interface NotaRepository {

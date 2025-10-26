@@ -1,21 +1,53 @@
 package com.example.proyectomovil.ui
 
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.proyectomovil.ProyectoMovilApplication
-import com.example.proyectomovil.ui.screens.home.HomeViewModel
-import com.example.proyectomovil.ui.screens.nota.NotaViewModel
+import com.example.proyectomovil.ui.ViewModel.Tarea.DetalleTareaViewModel
+import com.example.proyectomovil.ui.ViewModel.Tarea.TareaViewModel
+import com.example.proyectomovil.ui.ViewModel.home.HomeViewModel
+import com.example.proyectomovil.ui.ViewModel.nota.DetalleNotaViewModel
+import com.example.proyectomovil.ui.ViewModel.nota.NotaViewModel
+import com.example.proyectomovil.ui.ViewModel.settings.SettingsViewModel
 
 object AppViewModelProvider {
     val Factory = viewModelFactory {
         initializer {
-            HomeViewModel(ProyectoMovilApplication().container.notaRepository)
+            HomeViewModel(ProyectoMovilApplication().container.notaRepository, ProyectoMovilApplication().container.tareaRepository)
         }
 
         initializer {
-            NotaViewModel(ProyectoMovilApplication().container.notaRepository)
+            NotaViewModel(this.createSavedStateHandle(),ProyectoMovilApplication().container.notaRepository)
+        }
+
+        // Falta inicializar el viewModel de tarea
+        initializer {
+            TareaViewModel(this.createSavedStateHandle(),ProyectoMovilApplication().container.tareaRepository)
+        }
+
+        // detalles de las tareas y notas
+        initializer {
+            DetalleTareaViewModel(
+                this.createSavedStateHandle(),
+                ProyectoMovilApplication().container.tareaRepository
+            )
+        }
+
+        initializer {
+            DetalleNotaViewModel(
+                this.createSavedStateHandle(),
+                ProyectoMovilApplication().container.notaRepository
+            )
+        }
+
+        // iniciar settings
+        initializer {
+            SettingsViewModel(
+                ProyectoMovilApplication().container.userPreferencesRepository
+            )
         }
 
     }

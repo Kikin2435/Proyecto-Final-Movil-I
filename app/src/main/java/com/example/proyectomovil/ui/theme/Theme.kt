@@ -9,7 +9,12 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.proyectomovil.ui.AppViewModelProvider
+import com.example.proyectomovil.ui.ViewModel.settings.SettingsViewModel
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -36,10 +41,17 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun ProyectoMovilTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
+    val settingsViewModel: SettingsViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val settingsState by settingsViewModel.uiState.collectAsState()
+
+    val typography = when (settingsState.fontSize) {
+        "pequeño" -> AppTypographySmall
+        "grande" -> AppTypographyLarge
+        else -> AppTypographyMedium
+    }
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
@@ -52,7 +64,7 @@ fun ProyectoMovilTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = typography,
         content = content
     )
 }

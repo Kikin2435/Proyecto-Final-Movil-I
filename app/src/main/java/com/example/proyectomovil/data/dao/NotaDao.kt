@@ -1,4 +1,4 @@
-package com.example.proyectomovil.data
+package com.example.proyectomovil.data.dao
 
 import androidx.room.Dao
 import androidx.room.Delete
@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface NotaDao{
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)
     suspend fun insertar(nota: Nota)
 
     @Update
