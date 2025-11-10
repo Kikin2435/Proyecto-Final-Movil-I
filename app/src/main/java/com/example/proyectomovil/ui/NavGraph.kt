@@ -21,9 +21,9 @@ sealed class Pantalla(val ruta: String) {
         fun editar(id: Int) = "pantalla_crear_nota?notaId=$id"
     }
     object CrearTarea : Pantalla("pantalla_crear_tarea?tareaId={tareaId}"){
+        fun editar(id: Int) = "pantalla_crear_tarea?tareaId=$id"
         fun crear() = "pantalla_crear_tarea"
 
-        fun editar(id: Int) = "pantalla_crear_tarea?tareaId=$id"
     }
     object DetalleNota : Pantalla("detalle_nota/{notaId}"){
         fun conId(id: Int) = "detalle_nota/$id"

@@ -14,6 +14,7 @@
     <string name="boton_aceptar">Accept</string>
     <string name="boton_cancelar">Cancel</string>
     <string name="boton_eliminar">Delete</string>
+    <string name="boton_editar">Edit</string>
 
     <string name="tab_notas">Notes</string>
     <string name="tab_tareas">Tasks</string>

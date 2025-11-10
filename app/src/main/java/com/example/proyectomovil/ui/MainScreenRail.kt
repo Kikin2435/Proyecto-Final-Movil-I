@@ -69,7 +69,7 @@ fun MainScreenRail(navController: NavHostController) {
                     .weight(1f)
                     .padding(16.dp)
             ) {
-                composable("pantalla_principal") { PantallaPrincipal(navController) }
+                composable("pantalla_principal") { PantallaPrincipal(navController, isLargeScreen = true) }
                 composable(
                     route = Pantalla.CrearNota.ruta,
                     arguments = listOf(
