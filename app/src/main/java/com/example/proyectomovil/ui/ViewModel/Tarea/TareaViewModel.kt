@@ -7,14 +7,20 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.proyectomovil.data.Repository.ArchivosMultimediaRepository
 import com.example.proyectomovil.data.Repository.TareaRepository
+import com.example.proyectomovil.data.model.ArchivosMultimedia
 import com.example.proyectomovil.data.model.Tarea
+import com.example.proyectomovil.ui.notificaciones.AlarmaScheduler
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+
 class TareaViewModel(
     savedStateHandle: SavedStateHandle,
-    private val tareaRepository: TareaRepository
+    private val tareaRepository: TareaRepository,
+    private val archivosMultimediaRepository: ArchivosMultimediaRepository,
+    private val alarmaScheduler: AlarmaScheduler // Inyectado
 ) : ViewModel() {
 
     var tareaUiState by mutableStateOf(TareaUiState())
@@ -23,14 +29,13 @@ class TareaViewModel(
     private val tareaId: Int? = savedStateHandle["tareaId"]
 
     init {
-        Log.d("TareaViewModel", "ViewModel creado. ID recibido: $tareaId")
-        if (tareaId != null) {
-            Log.d("TareaViewModel", "Modo Editar detectado. Cargando Datos")
+        if (tareaId != null && tareaId != -1) {
             viewModelScope.launch {
-                tareaUiState = tareaRepository.obtenerTareaStream(tareaId)
-                    .filterNotNull()
-                    .first()
-                    .toTareaUiState()
+                val tarea = tareaRepository.obtenerTareaStream(tareaId).filterNotNull().first()
+                val archivos = archivosMultimediaRepository.obtenerArchivosPorTarea(tareaId).filterNotNull().first()
+                tareaUiState = tarea.toTareaUiState().copy(
+                    archivosUri = archivos.map { it.uri }
+                )
             }
         }
     }
@@ -41,49 +46,79 @@ class TareaViewModel(
         )
     }
 
-    fun guardarTarea() {
+    fun removerArchivoUri(uri: String) {
+        val currentUris = tareaUiState.archivosUri.toMutableList()
+        currentUris.remove(uri)
+        actualizarUiState(tareaUiState.copy(archivosUri = currentUris))
+    }
 
-        val tareaParaGuardar = tareaUiState.toTarea()
+    fun guardarTarea() {
+        if (!tareaUiState.isEntryValid) return
+
         viewModelScope.launch {
             try {
-                if (tareaId != null && tareaId != -1) {
+                val tarea = tareaUiState.toTarea()
+                var tareaGuardada: Tarea
 
-                    tareaRepository.actualizarTarea(tareaParaGuardar)
-                } else {
-
-                    tareaRepository.insertarTarea(tareaParaGuardar)
+                if (tarea.id == 0) { // Tarea nueva
+                    val nuevoId = tareaRepository.insertarTarea(tarea)
+                    tareaGuardada = tarea.copy(id = nuevoId.toInt())
+                    guardarArchivos(nuevoId.toInt())
+                } else { // Tarea existente
+                    // Primero cancelamos cualquier alarma anterior
+                    alarmaScheduler.cancel(tarea)
+                    tareaRepository.actualizarTarea(tarea)
+                    tareaGuardada = tarea
+                    archivosMultimediaRepository.eliminarArchivosPorTarea(tarea.id)
+                    guardarArchivos(tarea.id)
                 }
 
+                // Programamos la nueva alarma si es necesario
+                alarmaScheduler.schedule(tareaGuardada)
+
             } catch (e: Exception) {
-                Log.e("DEBUG_GUARDAR", "[ViewModel] ¡CRASH! Excepción al guardar en el repositorio: ${e.message}", e)
+                Log.e("GUARDAR_VM", "Error al guardar la tarea y/o sus archivos", e)
             }
         }
     }
-}
 
+    private suspend fun guardarArchivos(idTarea: Int) {
+        tareaUiState.archivosUri.forEach {
+            archivosMultimediaRepository.insertarArchivo(
+                ArchivosMultimedia(
+                    uri = it,
+                    tipo = "archivo",
+                    tareaIdAsociada = idTarea,
+                    notaIdAsociada = null
+                )
+            )
+        }
+    }
+}
 
 data class TareaUiState(
     val id: Int = 0,
     val titulo: String = "",
     val contenido: String = "",
     val fechaRecordatorio: Long? = null,
+    val fotoUri: String? = null,
+    val archivosUri: List<String> = emptyList(),
     val isEntryValid: Boolean = false
 )
 
-
-private fun Tarea.toTareaUiState(): TareaUiState = TareaUiState(
-    id = this.id,
-    titulo = this.titulo,
-    contenido = this.contenido,
-    fechaRecordatorio = this.fechaRecordatorio,
-    isEntryValid = this.titulo.isNotBlank()
-)
-
-
 fun TareaUiState.toTarea(): Tarea = Tarea(
-    id = this.id,
-    titulo = this.titulo,
-    contenido = this.contenido,
-    fechaRecordatorio = this.fechaRecordatorio
+    id = id,
+    titulo = titulo,
+    contenido = contenido,
+    fechaRecordatorio = fechaRecordatorio,
+    fotoUri = fotoUri
 )
 
+fun Tarea.toTareaUiState(): TareaUiState = TareaUiState(
+    id = id,
+    titulo = titulo,
+    contenido = contenido,
+    fechaRecordatorio = fechaRecordatorio,
+    fotoUri = fotoUri,
+    isEntryValid = titulo.isNotBlank()
+)

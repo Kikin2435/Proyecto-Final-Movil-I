@@ -11,8 +11,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface NotaDao{
-    @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)
-    suspend fun insertar(nota: Nota)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertar(nota: Nota): Long // Cambiado
 
     @Update
     suspend fun actualizar(nota: Nota)

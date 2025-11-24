@@ -10,5 +10,6 @@ data class Nota(
     val titulo: String,
     val contenido: String,
     val fechaCreacion: Long = System.currentTimeMillis(),
+    val fotoUri: String? = null, // Agregado
     val fav: Boolean = false
 )

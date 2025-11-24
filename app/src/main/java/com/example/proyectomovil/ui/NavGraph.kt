@@ -32,6 +32,9 @@ sealed class Pantalla(val ruta: String) {
         fun conId(id: Int) = "detalle_tarea/$id"
     }
     object Configuracion : Pantalla("pantalla_configuracion")
+
+    // rutas para insertar los archivos
+    object AgregarArchivo: Pantalla("agregar_archivo")
 }
 
 @Composable

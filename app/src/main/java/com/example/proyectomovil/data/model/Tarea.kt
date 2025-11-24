@@ -11,5 +11,6 @@ data class Tarea(
     val titulo: String,
     val contenido: String,
     val fechaRecordatorio: Long? = null,
-    val fav: Boolean = false
+    val fav: Boolean = false,
+    val fotoUri: String? = null
 )

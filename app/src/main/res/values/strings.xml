@@ -33,4 +33,9 @@
     <string name="detalle_cargando">Cargando...</string>
     <string name="detalle_creado_el">Creado el: %1$s</string>
 
+    <string name="dialogo_eliminar_titulo">Eliminar</string>
+    <string name="dialogo_eliminar_texto">¿Estás seguro de que deseas eliminar esta nota o tarea? Esta acción no se puede deshacer.</string>
+
+"
+
 </resources>

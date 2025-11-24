@@ -55,6 +55,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
     implementation("androidx.room:room-runtime:$room_version")
@@ -66,6 +67,7 @@ dependencies {
     implementation("androidx.compose.material3:material3-window-size-class:1.3.0")
     implementation("androidx.navigation:navigation-compose:2.8.3")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
 
     testImplementation(libs.junit)

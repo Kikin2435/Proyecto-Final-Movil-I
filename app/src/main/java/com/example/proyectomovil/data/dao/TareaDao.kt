@@ -11,8 +11,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TareaDao{
-    @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)
-    suspend fun insertar(tarea: Tarea)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertar(tarea: Tarea): Long // Cambiado para que devuelva el ID
 
     @Update
     suspend fun actualizar(tarea: Tarea)

@@ -15,7 +15,7 @@ import com.example.proyectomovil.data.model.Tarea
 
 @Database(
     entities = [Nota::class, Notificacion::class, ArchivosMultimedia::class, Tarea::class],
-    version = 6,
+    version = 9,
      exportSchema = false
 )
 abstract class ConfigDB : RoomDatabase(){

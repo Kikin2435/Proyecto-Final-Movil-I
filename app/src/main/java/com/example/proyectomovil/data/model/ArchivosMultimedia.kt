@@ -21,7 +21,7 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index(value = ["notaIdAsociada"]), Index(value = ["tareaIdAsociada"])]
+    indices = [Index(value = ["notaIdAsociada"]), Index(value = ["tareaIdAsociada"])],
 )
 data class ArchivosMultimedia(
     @PrimaryKey(autoGenerate = true)

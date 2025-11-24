@@ -14,11 +14,19 @@ interface ArchivosMultimediaDao {
     @Delete
     suspend fun eliminarArchivo(archivo: ArchivosMultimedia)
 
-    // Obtener todos los archivos adjuntos a una Nota específica.
+    @Update
+    suspend fun actualizarArchivo(archivo: ArchivosMultimedia)
+
     @Query("SELECT * FROM archivos_multimedia WHERE notaIdAsociada = :notaId")
     fun obtenerArchivosPorNota(notaId: Int): Flow<List<ArchivosMultimedia>>
 
-    // Obtener todos los archivos adjuntos a una Tarea específica.
     @Query("SELECT * FROM archivos_multimedia WHERE tareaIdAsociada = :tareaId")
     fun obtenerArchivosPorTarea(tareaId: Int): Flow<List<ArchivosMultimedia>>
+
+    @Query("DELETE FROM archivos_multimedia WHERE tareaIdAsociada = :tareaId")
+    suspend fun eliminarArchivosPorTareaId(tareaId: Int)
+
+    // Nuevo método para eliminar por ID de nota
+    @Query("DELETE FROM archivos_multimedia WHERE notaIdAsociada = :notaId")
+    suspend fun eliminarArchivosPorNotaId(notaId: Int)
 }
