@@ -25,18 +25,22 @@ object AppViewModelProvider {
 
         initializer {
             NotaViewModel(
+                proyectoMovilApplication(),
                 this.createSavedStateHandle(),
                 proyectoMovilApplication().container.notaRepository,
                 proyectoMovilApplication().container.archivosMultimediaRepository
             )
         }
 
+        // --- CORRECCIÓN ---
+        // Le pasamos la instancia de 'Application' al TareaViewModel.
         initializer {
             TareaViewModel(
+                proyectoMovilApplication(), // <-- Añadido
                 this.createSavedStateHandle(),
                 proyectoMovilApplication().container.tareaRepository,
                 proyectoMovilApplication().container.archivosMultimediaRepository,
-                proyectoMovilApplication().container.alarmaScheduler // Añadido
+                proyectoMovilApplication().container.alarmaScheduler
             )
         }
 
@@ -53,7 +57,7 @@ object AppViewModelProvider {
                 this.createSavedStateHandle(),
                 proyectoMovilApplication().container.tareaRepository,
                 proyectoMovilApplication().container.archivosMultimediaRepository,
-                proyectoMovilApplication().container.alarmaScheduler // Añadido
+                proyectoMovilApplication().container.alarmaScheduler
             )
         }
 

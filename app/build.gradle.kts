@@ -45,6 +45,7 @@ android {
 dependencies {
     implementation(libs.protolite.well.known.types)
     implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.camera.video)
     val room_version = "2.6.1"
 
     implementation(libs.androidx.core.ktx)
@@ -68,6 +69,13 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.8.3")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("io.coil-kt:coil-compose:2.6.0")
+
+    implementation("androidx.camera:camera-core:1.3.4")
+    implementation("androidx.camera:camera-camera2:1.3.4")
+    implementation("androidx.camera:camera-lifecycle:1.3.4")
+    implementation("androidx.camera:camera-video:1.3.4")
+    implementation("androidx.camera:camera-view:1.3.4")
+
 
 
     testImplementation(libs.junit)
