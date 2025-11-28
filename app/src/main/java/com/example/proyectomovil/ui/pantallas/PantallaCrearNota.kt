@@ -1,10 +1,14 @@
 package com.example.proyectomovil.ui.pantallas
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.OpenableColumns
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -19,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -76,10 +81,31 @@ private fun ContenidoCrearNota(
     onRemoverArchivo: (ArchivosMultimedia) -> Unit
 ) {
     val context = LocalContext.current
+
+    // --- ESTADO PARA DIÁLOGOS ---
+    var mostrarDialogoPermiso by remember { mutableStateOf(false) }
+    var textoDialogoPermiso by remember { mutableStateOf("") }
+
+    // --- ESTADO PARA LÓGICA ---
+    var accionConPermiso by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var permissionsRequested by remember { mutableStateOf(emptySet<String>()) }
+
+    // --- ESTADO PARA ARCHIVOS ---
     var tempUri by remember { mutableStateOf<Uri?>(null) }
     var audioFile by remember { mutableStateOf<File?>(null) }
     var isRecording by remember { mutableStateOf(false) }
 
+    // --- LAUNCHER DE PERMISOS ---
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        if (permissions.values.all { it }) {
+            accionConPermiso?.invoke()
+        }
+        accionConPermiso = null
+    }
+
+    // --- LAUNCHERS DE ACTIVIDADES ---
     val addArchivoToState = { uri: Uri?, tipo: String ->
         uri?.let {
             try {
@@ -92,11 +118,8 @@ private fun ContenidoCrearNota(
                     notaIdAsociada = notaUiState.id.takeIf { id -> id != 0 },
                     tareaIdAsociada = null
                 )
-                val archivosActualizados = notaUiState.archivos.toMutableList().apply { add(nuevoArchivo) }
-                onValueChange(notaUiState.copy(archivos = archivosActualizados))
-            } catch (e: SecurityException) {
-                e.printStackTrace()
-            }
+                onValueChange(notaUiState.copy(archivos = notaUiState.archivos + nuevoArchivo))
+            } catch (e: SecurityException) { e.printStackTrace() }
         }
     }
 
@@ -110,12 +133,43 @@ private fun ContenidoCrearNota(
         uris.forEach { uri -> addArchivoToState(uri, "DOCUMENTO") }
     }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val allPermissionsGranted = permissions.values.all { it }
-        if (allPermissionsGranted) {
-            // El usuario tendría que volver a presionar el botón.
+    // --- DIÁLOGOS ---
+    if (mostrarDialogoPermiso) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoPermiso = false },
+            title = { Text("Permiso Requerido") },
+            text = { Text(textoDialogoPermiso) },
+            confirmButton = {
+                Button(onClick = {
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                    }
+                    context.startActivity(intent)
+                    mostrarDialogoPermiso = false
+                }) { Text("Ir a Ajustes") }
+            },
+            dismissButton = { Button(onClick = { mostrarDialogoPermiso = false }) { Text("Cancelar") } }
+        )
+    }
+
+    // --- FUNCIÓN AUXILIAR PARA PERMISOS ---
+    val handlePermission = { permissions: Array<String>, permissionText: String, action: () -> Unit ->
+        if (permissions.all { hasPermission(context, it) }) {
+            action()
+        } else {
+            val activity = context.findActivity()
+            val permanentlyDenied = permissions.any { perm ->
+                activity?.let { !ActivityCompat.shouldShowRequestPermissionRationale(it, perm) && permissionsRequested.contains(perm) } ?: false
+            }
+
+            if (permanentlyDenied) {
+                textoDialogoPermiso = "Para usar esta función, necesitas el permiso de $permissionText. Por favor, habilítalo en los ajustes de la aplicación."
+                mostrarDialogoPermiso = true
+            } else {
+                permissionsRequested = permissionsRequested + permissions
+                accionConPermiso = action
+                permissionLauncher.launch(permissions)
+            }
         }
     }
 
@@ -151,33 +205,26 @@ private fun ContenidoCrearNota(
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ActionButton(icon = Icons.Default.CameraAlt, text = "Foto", modifier = Modifier.weight(1f)) {
-                if (hasPermission(context, Manifest.permission.CAMERA)) {
-                    tempUri = createMediaUri(context, ".jpg") // <-- CORREGIDO: Asigna a la variable de estado
-                    cameraLauncher.launch(tempUri!!)
-                } else {
-                    permissionLauncher.launch(arrayOf(Manifest.permission.CAMERA))
+                handlePermission(arrayOf(Manifest.permission.CAMERA), "Cámara") {
+                    tempUri = createMediaUri(context, ".jpg")
+                    tempUri?.let { cameraLauncher.launch(it) } ?: Unit
                 }
             }
             ActionButton(icon = Icons.Default.Videocam, text = "Video", modifier = Modifier.weight(1f)) {
-                val permissions = arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
-                if (permissions.all { hasPermission(context, it) }) {
-                    tempUri = createMediaUri(context, ".mp4") // <-- CORREGIDO: Asigna a la variable de estado
-                    videoLauncher.launch(tempUri!!)
-                } else {
-                    permissionLauncher.launch(permissions)
+                handlePermission(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO), "Cámara y Micrófono") {
+                    tempUri = createMediaUri(context, ".mp4")
+                    tempUri?.let { videoLauncher.launch(it) } ?: Unit
                 }
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (!isRecording) {
                 ActionButton(icon = Icons.Default.Mic, text = "Grabar", modifier = Modifier.weight(1f)) {
-                    if (hasPermission(context, Manifest.permission.RECORD_AUDIO)) {
+                    handlePermission(arrayOf(Manifest.permission.RECORD_AUDIO), "Micrófono") {
                         isRecording = true
-                        val newAudioFile = createMediaFile(context, ".3gp") // <-- CORREGIDO: Formato de audio
+                        val newAudioFile = createMediaFile(context, ".3gp")
                         audioFile = newAudioFile
                         audioRecorder.start(newAudioFile)
-                    } else {
-                        permissionLauncher.launch(arrayOf(Manifest.permission.RECORD_AUDIO))
                     }
                 }
             } else {
@@ -191,7 +238,14 @@ private fun ContenidoCrearNota(
                 }
             }
             ActionButton(icon = Icons.Default.AttachFile, text = "Adjuntar", modifier = Modifier.weight(1f)) {
-                filePickerLauncher.launch(arrayOf("*/*"))
+                 val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    arrayOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.READ_MEDIA_AUDIO)
+                } else {
+                    arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+                }
+                handlePermission(permissions, "archivos y contenido multimedia") {
+                    filePickerLauncher.launch(arrayOf("*/*"))
+                }
             }
         }
 
@@ -227,7 +281,7 @@ private fun createMediaFile(context: Context, extension: String): File {
     val storageDir = when(extension) {
         ".jpg" -> context.getExternalFilesDir("images")
         ".mp4" -> context.getExternalFilesDir("videos")
-        ".3gp" -> context.getExternalFilesDir("audio") // <-- CORREGIDO: Ruta para audio
+        ".3gp" -> context.getExternalFilesDir("audio")
         else -> context.getExternalFilesDir("files")
     }
     return File.createTempFile(mediaFileName, extension, storageDir)
@@ -236,4 +290,10 @@ private fun createMediaFile(context: Context, extension: String): File {
 private fun createMediaUri(context: Context, extension: String): Uri {
     val file = createMediaFile(context, extension)
     return FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+}
+
+private fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

@@ -1,11 +1,14 @@
 package com.example.proyectomovil.ui.pantallas
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -21,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -68,7 +72,7 @@ fun PantallaCrearTarea(navController: NavController, tareaId: Int?) {
             onRemoverArchivo = viewModel::removerArchivo,
             onAgregarRecordatorio = viewModel::agregarRecordatorio,
             onRemoverRecordatorio = viewModel::removerRecordatorio,
-            onEditarRecordatorio = viewModel::editarRecordatorio // Añadido
+            onEditarRecordatorio = viewModel::editarRecordatorio
         )
     }
 }
@@ -84,19 +88,28 @@ private fun ContenidoCrearTarea(
     onRemoverArchivo: (ArchivosMultimedia) -> Unit,
     onAgregarRecordatorio: (Long) -> Unit,
     onRemoverRecordatorio: (Long) -> Unit,
-    onEditarRecordatorio: (Long, Long) -> Unit // Añadido
+    onEditarRecordatorio: (Long, Long) -> Unit
 ) {
     val context = LocalContext.current
 
+    // --- ESTADO PARA DIÁLOGOS ---
     var mostrarDatePicker by remember { mutableStateOf(false) }
     var mostrarTimePicker by remember { mutableStateOf(false) }
+    var mostrarDialogoPermiso by remember { mutableStateOf(false) }
+    var textoDialogoPermiso by remember { mutableStateOf("") }
+
+    // --- ESTADO PARA LÓGICA ---
     var fechaSeleccionadaTemp by remember { mutableStateOf<Long?>(null) }
     var recordatorioAEditar by remember { mutableStateOf<Long?>(null) }
+    var accionConPermiso by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var permissionsRequested by remember { mutableStateOf(emptySet<String>()) }
 
+    // --- ESTADO PARA ARCHIVOS ---
     var tempUri by remember { mutableStateOf<Uri?>(null) }
     var audioFile by remember { mutableStateOf<File?>(null) }
     var isRecording by remember { mutableStateOf(false) }
 
+    // --- CONFIGURACIÓN DE PICKERS ---
     val calendar = Calendar.getInstance()
     recordatorioAEditar?.let { calendar.timeInMillis = it }
 
@@ -106,23 +119,26 @@ private fun ContenidoCrearTarea(
         initialMinute = calendar.get(Calendar.MINUTE)
     )
 
+    // --- LAUNCHER DE PERMISOS ---
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        if (permissions.values.all { it }) {
+            accionConPermiso?.invoke()
+        }
+        accionConPermiso = null
+    }
+
+    // --- LAUNCHERS DE ACTIVIDADES ---
     val addArchivoToState = { uri: Uri?, tipo: String ->
         uri?.let {
             try {
                 if (it.authority != "${context.packageName}.provider") {
                     context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
-                val nuevoArchivo = ArchivosMultimedia(
-                    uri = it.toString(),
-                    tipo = tipo,
-                    tareaIdAsociada = tareaUiState.id.takeIf { id -> id != 0 },
-                    notaIdAsociada = null
-                )
-                val archivosActualizados = tareaUiState.archivos.toMutableList().apply { add(nuevoArchivo) }
-                onValueChange(tareaUiState.copy(archivos = archivosActualizados))
-            } catch (e: SecurityException) {
-                e.printStackTrace()
-            }
+                val nuevoArchivo = ArchivosMultimedia(uri = it.toString(), tipo = tipo, tareaIdAsociada = tareaUiState.id.takeIf { id -> id != 0 }, notaIdAsociada = null)
+                onValueChange(tareaUiState.copy(archivos = tareaUiState.archivos + nuevoArchivo))
+            } catch (e: SecurityException) { e.printStackTrace() }
         }
     }
 
@@ -136,12 +152,23 @@ private fun ContenidoCrearTarea(
         uris.forEach { uri -> addArchivoToState(uri, "DOCUMENTO") }
     }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        if (permissions.values.all { it }) {
-            mostrarDatePicker = true
-        }
+    // --- DIÁLOGOS ---
+    if (mostrarDialogoPermiso) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoPermiso = false },
+            title = { Text("Permiso Requerido") },
+            text = { Text(textoDialogoPermiso) },
+            confirmButton = {
+                Button(onClick = {
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                    }
+                    context.startActivity(intent)
+                    mostrarDialogoPermiso = false
+                }) { Text("Ir a Ajustes") }
+            },
+            dismissButton = { Button(onClick = { mostrarDialogoPermiso = false }) { Text("Cancelar") } }
+        )
     }
 
     if (mostrarTimePicker) {
@@ -157,26 +184,17 @@ private fun ContenidoCrearTarea(
                         set(Calendar.MINUTE, timePickerState.minute)
                     }
                     val fechaNueva = cal.timeInMillis
-                    recordatorioAEditar?.let {
-                        onEditarRecordatorio(it, fechaNueva)
-                    } ?: onAgregarRecordatorio(fechaNueva)
-                    
+                    recordatorioAEditar?.let { onEditarRecordatorio(it, fechaNueva) } ?: onAgregarRecordatorio(fechaNueva)
                     mostrarTimePicker = false
                     recordatorioAEditar = null
                 }) { Text(stringResource(id = R.string.boton_aceptar)) }
             },
-            dismissButton = { Button(onClick = {
-                mostrarTimePicker = false
-                recordatorioAEditar = null 
-            }) { Text(stringResource(id = R.string.boton_cancelar)) } }
+            dismissButton = { Button(onClick = { mostrarTimePicker = false; recordatorioAEditar = null }) { Text(stringResource(id = R.string.boton_cancelar)) } }
         )
     }
     if (mostrarDatePicker) {
         DatePickerDialog(
-            onDismissRequest = { 
-                mostrarDatePicker = false
-                recordatorioAEditar = null
-            },
+            onDismissRequest = { mostrarDatePicker = false; recordatorioAEditar = null },
             confirmButton = {
                 Button(onClick = {
                     datePickerState.selectedDateMillis?.let {
@@ -186,51 +204,61 @@ private fun ContenidoCrearTarea(
                     }
                 }) { Text(stringResource(id = R.string.boton_aceptar)) }
             },
-            dismissButton = { Button(onClick = {
-                mostrarDatePicker = false 
-                recordatorioAEditar = null
-            }) { Text(stringResource(id = R.string.boton_cancelar)) } }
+            dismissButton = { Button(onClick = { mostrarDatePicker = false; recordatorioAEditar = null }) { Text(stringResource(id = R.string.boton_cancelar)) } }
         ) { DatePicker(state = datePickerState) }
     }
 
+    // --- FUNCIÓN AUXILIAR PARA PERMISOS ---
+    val handlePermission = { permissions: Array<String>, permissionText: String, action: () -> Unit ->
+        if (permissions.all { hasPermission(context, it) }) {
+            action()
+        } else {
+            val activity = context.findActivity()
+            val permanentlyDenied = permissions.any { perm ->
+                activity?.let { !ActivityCompat.shouldShowRequestPermissionRationale(it, perm) && permissionsRequested.contains(perm) } ?: false
+            }
+
+            if (permanentlyDenied) {
+                textoDialogoPermiso = "Para usar esta función, necesitas el permiso de $permissionText. Por favor, habilítalo en los ajustes de la aplicación."
+                mostrarDialogoPermiso = true
+            } else {
+                permissionsRequested = permissionsRequested + permissions
+                accionConPermiso = action
+                permissionLauncher.launch(permissions)
+            }
+        }
+    }
+
+    // --- CONTENIDO DE LA PANTALLA ---
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         OutlinedTextField(value = tareaUiState.titulo, onValueChange = { onValueChange(tareaUiState.copy(titulo = it)) }, label = { Text(stringResource(id = R.string.campo_titulo)) }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(value = tareaUiState.contenido, onValueChange = { onValueChange(tareaUiState.copy(contenido = it)) }, label = { Text(stringResource(id = R.string.campo_contenido)) }, modifier = Modifier.fillMaxWidth())
-        
+
         Column {
             Text(text = stringResource(id = R.string.campo_fecha), style = MaterialTheme.typography.titleMedium)
-            tareaUiState.fechasRecordatorio.forEach {
+            tareaUiState.fechasRecordatorio.forEach { fecha ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable {
-                        recordatorioAEditar = it
-                        mostrarDatePicker = true
+                    modifier = Modifier.clickable { 
+                        handlePermission(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) arrayOf(Manifest.permission.POST_NOTIFICATIONS, Manifest.permission.SCHEDULE_EXACT_ALARM) else arrayOf(Manifest.permission.SCHEDULE_EXACT_ALARM), "Notificaciones y Alarmas") {
+                            recordatorioAEditar = fecha
+                            mostrarDatePicker = true
+                        }
                     }
                 ) {
-                    Text(formatTimestampToDateTime(it), modifier = Modifier.weight(1f))
-                    IconButton(onClick = { onRemoverRecordatorio(it) }) {
-                        Icon(Icons.Default.Close, contentDescription = "Eliminar recordatorio")
-                    }
+                    Text(formatTimestampToDateTime(fecha), modifier = Modifier.weight(1f))
+                    IconButton(onClick = { onRemoverRecordatorio(fecha) }) { Icon(Icons.Default.Close, contentDescription = "Eliminar recordatorio") }
                 }
             }
             Button(onClick = {
-                val notificationPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    arrayOf(Manifest.permission.POST_NOTIFICATIONS, Manifest.permission.SCHEDULE_EXACT_ALARM)
-                } else {
-                    arrayOf(Manifest.permission.SCHEDULE_EXACT_ALARM)
-                }
-                if (notificationPermissions.all { hasPermission(context, it) }) {
-                    recordatorioAEditar = null // Aseguramos que estamos agregando, no editando
+                handlePermission(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) arrayOf(Manifest.permission.POST_NOTIFICATIONS, Manifest.permission.SCHEDULE_EXACT_ALARM) else arrayOf(Manifest.permission.SCHEDULE_EXACT_ALARM), "Notificaciones y Alarmas") {
+                    recordatorioAEditar = null
                     mostrarDatePicker = true
-                } else {
-                    permissionLauncher.launch(notificationPermissions)
                 }
-            }) {
-                Text("Agregar recordatorio")
-            }
+            }) { Text("Agregar recordatorio") }
         }
 
         if (!tareaUiState.fotoUri.isNullOrBlank()) {
@@ -258,33 +286,26 @@ private fun ContenidoCrearTarea(
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ActionButton(icon = Icons.Default.CameraAlt, text = "Foto", modifier = Modifier.weight(1f)) {
-                if (hasPermission(context, Manifest.permission.CAMERA)) {
+                handlePermission(arrayOf(Manifest.permission.CAMERA), "Cámara") {
                     tempUri = createMediaUri(context, ".jpg")
-                    tempUri?.let { cameraLauncher.launch(it) }
-                } else {
-                    permissionLauncher.launch(arrayOf(Manifest.permission.CAMERA))
+                    tempUri?.let { cameraLauncher.launch(it) } ?: Unit
                 }
             }
             ActionButton(icon = Icons.Default.Videocam, text = "Video", modifier = Modifier.weight(1f)) {
-                val permissions = arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
-                if (permissions.all { hasPermission(context, it) }) {
+                handlePermission(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO), "Cámara y Micrófono") {
                     tempUri = createMediaUri(context, ".mp4")
-                    tempUri?.let { videoLauncher.launch(it) }
-                } else {
-                    permissionLauncher.launch(permissions)
+                    tempUri?.let { videoLauncher.launch(it) } ?: Unit
                 }
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (!isRecording) {
                 ActionButton(icon = Icons.Default.Mic, text = "Grabar", modifier = Modifier.weight(1f)) {
-                    if (hasPermission(context, Manifest.permission.RECORD_AUDIO)) {
+                    handlePermission(arrayOf(Manifest.permission.RECORD_AUDIO), "Micrófono") {
                         isRecording = true
                         val newAudioFile = createMediaFile(context, ".3gp")
                         audioFile = newAudioFile
                         audioRecorder.start(newAudioFile)
-                    } else {
-                        permissionLauncher.launch(arrayOf(Manifest.permission.RECORD_AUDIO))
                     }
                 }
             } else {
@@ -298,7 +319,14 @@ private fun ContenidoCrearTarea(
                 }
             }
             ActionButton(icon = Icons.Default.AttachFile, text = "Adjuntar", modifier = Modifier.weight(1f)) {
-                filePickerLauncher.launch(arrayOf("*/*"))
+                val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    arrayOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.READ_MEDIA_AUDIO)
+                } else {
+                    arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+                }
+                handlePermission(permissions, "archivos y contenido multimedia") {
+                    filePickerLauncher.launch(arrayOf("*/*"))
+                }
             }
         }
 
@@ -347,4 +375,10 @@ private fun createMediaFile(context: Context, extension: String): File {
 private fun createMediaUri(context: Context, extension: String): Uri {
     val file = createMediaFile(context, extension)
     return FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+}
+
+private fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
