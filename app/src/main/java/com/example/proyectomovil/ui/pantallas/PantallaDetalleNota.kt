@@ -9,10 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +21,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.proyectomovil.R
+import com.example.proyectomovil.data.model.ArchivosMultimedia
 import com.example.proyectomovil.ui.AppViewModelProvider
 import com.example.proyectomovil.ui.Pantalla
 import com.example.proyectomovil.ui.ViewModel.nota.DetalleNotaViewModel
@@ -39,11 +37,12 @@ fun PantallaDetalleNota(
     val viewModel: DetalleNotaViewModel = viewModel(factory = AppViewModelProvider.Factory)
     val uiState by viewModel.uiStateDetalle.collectAsState()
     val coroutineScope = rememberCoroutineScope()
-    var mostrarDialogo by remember { mutableStateOf(false) }
+    var mostrarDialogoEliminar by remember { mutableStateOf(false) }
+    var archivoAReproducir by remember { mutableStateOf<ArchivosMultimedia?>(null) }
 
-    if (mostrarDialogo) {
+    if (mostrarDialogoEliminar) {
         AlertDialog(
-            onDismissRequest = { mostrarDialogo = false },
+            onDismissRequest = { mostrarDialogoEliminar = false },
             title = { Text(stringResource(id = R.string.dialogo_eliminar_titulo)) },
             text = { Text("¿Estás seguro de que quieres eliminar esta nota?") },
             confirmButton = {
@@ -59,11 +58,15 @@ fun PantallaDetalleNota(
                 }
             },
             dismissButton = {
-                Button(onClick = { mostrarDialogo = false }) {
+                Button(onClick = { mostrarDialogoEliminar = false }) {
                     Text(stringResource(id = R.string.boton_cancelar))
                 }
             }
         )
+    }
+
+    archivoAReproducir?.let {
+        MediaPlayerDialog(uri = Uri.parse(it.uri), onDismiss = { archivoAReproducir = null })
     }
 
     Scaffold(
@@ -76,7 +79,7 @@ fun PantallaDetalleNota(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { mostrarDialogo = true }) {
+                    IconButton(onClick = { mostrarDialogoEliminar = true }) {
                         Icon(Icons.Default.Delete, contentDescription = stringResource(id = R.string.boton_eliminar))
                     }
                 }
@@ -96,7 +99,8 @@ fun PantallaDetalleNota(
     ) { innerPadding ->
         ContenidoDetalleNota(
             uiState = uiState,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(innerPadding),
+            onArchivoClick = { archivoAReproducir = it }
         )
     }
 }
@@ -104,7 +108,8 @@ fun PantallaDetalleNota(
 @Composable
 private fun ContenidoDetalleNota(
     uiState: NotaUiStateDetalle,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onArchivoClick: (ArchivosMultimedia) -> Unit
 ) {
     val nota = uiState.nota ?: return
     val context = LocalContext.current
@@ -146,16 +151,25 @@ private fun ContenidoDetalleNota(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
-                            val intent = Intent(Intent.ACTION_VIEW).apply {
-                                setDataAndType(uri, context.contentResolver.getType(uri))
-                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            if (archivo.tipo == "VIDEO" || archivo.tipo == "AUDIO") {
+                                onArchivoClick(archivo)
+                            } else {
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    setDataAndType(uri, context.contentResolver.getType(uri))
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                context.startActivity(Intent.createChooser(intent, "Abrir con"))
                             }
-                            context.startActivity(Intent.createChooser(intent, "Abrir con"))
                         }
                         .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Description, contentDescription = "Archivo")
+                     val icon = when (archivo.tipo) {
+                        "VIDEO" -> Icons.Default.PlayCircle
+                        "AUDIO" -> Icons.Default.PlayCircleOutline
+                        else -> Icons.Default.Description
+                    }
+                    Icon(icon, contentDescription = "Archivo")
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(fileName ?: uri.toString(), style = MaterialTheme.typography.bodyMedium)
                 }

@@ -11,9 +11,11 @@ import android.provider.OpenableColumns
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -92,24 +94,21 @@ private fun ContenidoCrearTarea(
 ) {
     val context = LocalContext.current
 
-    // --- ESTADO PARA DIÁLOGOS ---
     var mostrarDatePicker by remember { mutableStateOf(false) }
     var mostrarTimePicker by remember { mutableStateOf(false) }
     var mostrarDialogoPermiso by remember { mutableStateOf(false) }
     var textoDialogoPermiso by remember { mutableStateOf("") }
+    var archivoAReproducir by remember { mutableStateOf<Uri?>(null) }
 
-    // --- ESTADO PARA LÓGICA ---
     var fechaSeleccionadaTemp by remember { mutableStateOf<Long?>(null) }
     var recordatorioAEditar by remember { mutableStateOf<Long?>(null) }
     var accionConPermiso by remember { mutableStateOf<(() -> Unit)?>(null) }
     var permissionsRequested by remember { mutableStateOf(emptySet<String>()) }
 
-    // --- ESTADO PARA ARCHIVOS ---
     var tempUri by remember { mutableStateOf<Uri?>(null) }
     var audioFile by remember { mutableStateOf<File?>(null) }
     var isRecording by remember { mutableStateOf(false) }
 
-    // --- CONFIGURACIÓN DE PICKERS ---
     val calendar = Calendar.getInstance()
     recordatorioAEditar?.let { calendar.timeInMillis = it }
 
@@ -119,7 +118,6 @@ private fun ContenidoCrearTarea(
         initialMinute = calendar.get(Calendar.MINUTE)
     )
 
-    // --- LAUNCHER DE PERMISOS ---
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -129,7 +127,6 @@ private fun ContenidoCrearTarea(
         accionConPermiso = null
     }
 
-    // --- LAUNCHERS DE ACTIVIDADES ---
     val addArchivoToState = { uri: Uri?, tipo: String ->
         uri?.let {
             try {
@@ -152,7 +149,10 @@ private fun ContenidoCrearTarea(
         uris.forEach { uri -> addArchivoToState(uri, "DOCUMENTO") }
     }
 
-    // --- DIÁLOGOS ---
+    archivoAReproducir?.let {
+        MediaPlayerDialog(uri = it, onDismiss = { archivoAReproducir = null })
+    }
+
     if (mostrarDialogoPermiso) {
         AlertDialog(
             onDismissRequest = { mostrarDialogoPermiso = false },
@@ -208,7 +208,6 @@ private fun ContenidoCrearTarea(
         ) { DatePicker(state = datePickerState) }
     }
 
-    // --- FUNCIÓN AUXILIAR PARA PERMISOS ---
     val handlePermission = { permissions: Array<String>, permissionText: String, action: () -> Unit ->
         if (permissions.all { hasPermission(context, it) }) {
             action()
@@ -229,7 +228,6 @@ private fun ContenidoCrearTarea(
         }
     }
 
-    // --- CONTENIDO DE LA PANTALLA ---
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -262,17 +260,46 @@ private fun ContenidoCrearTarea(
         }
 
         if (!tareaUiState.fotoUri.isNullOrBlank()) {
-            AsyncImage(model = Uri.parse(tareaUiState.fotoUri), contentDescription = "Imagen de la tarea", modifier = Modifier.fillMaxWidth().height(200.dp))
+            Box(modifier = Modifier.fillMaxWidth()) {
+                AsyncImage(
+                    model = Uri.parse(tareaUiState.fotoUri),
+                    contentDescription = "Imagen de la tarea",
+                    modifier = Modifier.fillMaxWidth().height(200.dp)
+                )
+                IconButton(
+                    onClick = { onValueChange(tareaUiState.copy(fotoUri = null)) },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Quitar foto",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.background(MaterialTheme.colorScheme.primary, shape = CircleShape)
+                    )
+                }
+            }
         }
         if (tareaUiState.archivos.isNotEmpty()) {
             Text("Archivos adjuntos:")
             tareaUiState.archivos.forEach { archivo ->
                 val uri = Uri.parse(archivo.uri)
                 val fileName = getFileName(context, uri)
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            if (archivo.tipo == "VIDEO" || archivo.tipo == "AUDIO") {
+                                archivoAReproducir = uri
+                            }
+                        }
+                        .padding(vertical = 4.dp)
+                ) {
                     val icon = when (archivo.tipo) {
-                        "VIDEO" -> Icons.Default.Videocam
-                        "AUDIO" -> Icons.Default.Mic
+                        "VIDEO" -> Icons.Default.PlayCircle
+                        "AUDIO" -> Icons.Default.PlayCircleOutline
                         "DOCUMENTO" -> Icons.Default.AttachFile
                         else -> Icons.Default.Description
                     }
@@ -298,8 +325,9 @@ private fun ContenidoCrearTarea(
                 }
             }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (!isRecording) {
+
+        if (!isRecording) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ActionButton(icon = Icons.Default.Mic, text = "Grabar", modifier = Modifier.weight(1f)) {
                     handlePermission(arrayOf(Manifest.permission.RECORD_AUDIO), "Micrófono") {
                         isRecording = true
@@ -308,24 +336,55 @@ private fun ContenidoCrearTarea(
                         audioRecorder.start(newAudioFile)
                     }
                 }
-            } else {
-                ActionButton(icon = Icons.Default.Stop, text = "Detener", modifier = Modifier.weight(1f)) {
+                ActionButton(icon = Icons.Default.AttachFile, text = "Adjuntar", modifier = Modifier.weight(1f)) {
+                    val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        arrayOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.READ_MEDIA_AUDIO)
+                    } else {
+                        arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+                    }
+                    handlePermission(permissions, "archivos y contenido multimedia") {
+                        filePickerLauncher.launch(arrayOf("*/*"))
+                    }
+                }
+            }
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.shapes.large)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Mic,
+                    contentDescription = "Grabando",
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Text(
+                    text = "Grabando...",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp)
+                )
+                IconButton(onClick = {
+                    audioRecorder.stop()
+                    isRecording = false
+                    audioFile?.delete()
+                    audioFile = null
+                }) {
+                    Icon(Icons.Filled.Cancel, contentDescription = "Cancelar grabación", tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                }
+                IconButton(onClick = {
                     audioRecorder.stop()
                     isRecording = false
                     audioFile?.let { file ->
                         val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
                         addArchivoToState(uri, "AUDIO")
                     }
-                }
-            }
-            ActionButton(icon = Icons.Default.AttachFile, text = "Adjuntar", modifier = Modifier.weight(1f)) {
-                val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    arrayOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.READ_MEDIA_AUDIO)
-                } else {
-                    arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
-                }
-                handlePermission(permissions, "archivos y contenido multimedia") {
-                    filePickerLauncher.launch(arrayOf("*/*"))
+                }) {
+                    Icon(Icons.Filled.StopCircle, contentDescription = "Detener grabación", tint = MaterialTheme.colorScheme.error)
                 }
             }
         }

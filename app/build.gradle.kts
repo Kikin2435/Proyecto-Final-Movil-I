@@ -76,6 +76,11 @@ dependencies {
     implementation("androidx.camera:camera-video:1.3.4")
     implementation("androidx.camera:camera-view:1.3.4")
 
+    // Dependencias de Media3 para el reproductor
+    implementation("androidx.media3:media3-exoplayer:1.3.1")
+    implementation("androidx.media3:media3-ui:1.3.1")
+    implementation("androidx.media3:media3-session:1.3.1")
+
 
 
     testImplementation(libs.junit)
