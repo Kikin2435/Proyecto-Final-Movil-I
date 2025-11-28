@@ -24,13 +24,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.proyectomovil.R
-import com.example.proyectomovil.data.model.Tarea
 import com.example.proyectomovil.ui.AppViewModelProvider
 import com.example.proyectomovil.ui.Pantalla
 import com.example.proyectomovil.ui.ViewModel.Tarea.DetalleTareaViewModel
 import com.example.proyectomovil.ui.ViewModel.Tarea.TareaUiStateDetalle
 import com.example.proyectomovil.ui.model.formatTimestampToDate
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -104,7 +105,7 @@ fun PantallaDetalleTarea(
 
 @Composable
 private fun ContenidoDetalleTarea(
-    uiState: TareaUiStateDetalle, // Corregido
+    uiState: TareaUiStateDetalle,
     modifier: Modifier = Modifier
 ) {
     val tarea = uiState.tarea ?: return
@@ -134,10 +135,11 @@ private fun ContenidoDetalleTarea(
 
         item { Divider() }
 
-        tarea.fechaRecordatorio?.let {
-            item {
-                val fechaFormateada = formatTimestampToDate(it)
-                Text(text = stringResource(id = R.string.detalle_creado_el, fechaFormateada), style = MaterialTheme.typography.labelMedium)
+        if (tarea.fechasRecordatorio.isNotEmpty()) {
+            item { Text(text = "Recordatorios:", style = MaterialTheme.typography.titleMedium) }
+            items(tarea.fechasRecordatorio) { fecha ->
+                val fechaFormateada = formatTimestampToDateTime(fecha)
+                Text(text = fechaFormateada, style = MaterialTheme.typography.bodyMedium)
             }
         }
 
@@ -181,4 +183,8 @@ private fun getFileName(context: Context, uri: Uri): String? {
         }
     }
     return fileName
+}
+
+private fun formatTimestampToDateTime(timestamp: Long): String {
+    return SimpleDateFormat("dd/MM/yyyy, HH:mm", Locale.getDefault()).format(Date(timestamp))
 }

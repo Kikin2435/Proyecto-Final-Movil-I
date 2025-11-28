@@ -20,7 +20,7 @@ interface TareaDao{
     @Delete
     suspend fun eliminar(tarea: Tarea)
 
-    @Query("SELECT * FROM tareas ORDER BY fechaRecordatorio DESC")
+    @Query("SELECT * FROM tareas ORDER BY id DESC")
     fun obtenerTodas(): Flow<List<Tarea>>
 
     @Query("SELECT * FROM tareas WHERE id = :id")

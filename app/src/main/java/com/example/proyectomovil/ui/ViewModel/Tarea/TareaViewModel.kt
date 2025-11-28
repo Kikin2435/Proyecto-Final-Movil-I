@@ -19,17 +19,17 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class TareaViewModel(
-    application: Application, // <-- Añadido
+    application: Application,
     savedStateHandle: SavedStateHandle,
     private val tareaRepository: TareaRepository,
     private val archivosMultimediaRepository: ArchivosMultimediaRepository,
     private val alarmaScheduler: AlarmaScheduler
-) : AndroidViewModel(application) { // <-- Cambiado
+) : AndroidViewModel(application) {
 
     var tareaUiState by mutableStateOf(TareaUiState())
         private set
 
-    val audioRecorder: AudioRecorder = AudioRecorder(application) // <-- Añadido
+    val audioRecorder: AudioRecorder = AudioRecorder(application)
 
     private val tareaId: Int? = savedStateHandle["tareaId"]
 
@@ -49,6 +49,24 @@ class TareaViewModel(
         )
     }
 
+    fun agregarRecordatorio(fecha: Long) {
+        val recordatoriosActualizados = tareaUiState.fechasRecordatorio.toMutableList().apply { add(fecha) }.sorted()
+        actualizarUiState(tareaUiState.copy(fechasRecordatorio = recordatoriosActualizados))
+    }
+
+    fun removerRecordatorio(fecha: Long) {
+        val recordatoriosActualizados = tareaUiState.fechasRecordatorio.toMutableList().apply { remove(fecha) }
+        actualizarUiState(tareaUiState.copy(fechasRecordatorio = recordatoriosActualizados))
+    }
+
+    fun editarRecordatorio(fechaVieja: Long, fechaNueva: Long) {
+        val recordatoriosActualizados = tareaUiState.fechasRecordatorio.toMutableList().apply {
+            remove(fechaVieja)
+            add(fechaNueva)
+        }.sorted()
+        actualizarUiState(tareaUiState.copy(fechasRecordatorio = recordatoriosActualizados))
+    }
+
     fun removerArchivo(archivo: ArchivosMultimedia) {
         val archivosActualizados = tareaUiState.archivos.toMutableList()
         archivosActualizados.remove(archivo)
@@ -60,23 +78,27 @@ class TareaViewModel(
 
         viewModelScope.launch {
             try {
-                val tarea = tareaUiState.toTarea()
+                val tareaActual = tareaUiState.toTarea()
                 var tareaGuardada: Tarea
 
-                if (tarea.id == 0) { 
-                    val nuevoId = tareaRepository.insertarTarea(tarea)
-                    tareaGuardada = tarea.copy(id = nuevoId.toInt())
+                if (tareaActual.id == 0) {
+                    val nuevoId = tareaRepository.insertarTarea(tareaActual)
+                    tareaGuardada = tareaActual.copy(id = nuevoId.toInt())
                     guardarArchivos(nuevoId.toInt())
-                } else { 
-                    alarmaScheduler.cancel(tarea)
-                    tareaRepository.actualizarTarea(tarea)
-                    tareaGuardada = tarea
-                    archivosMultimediaRepository.eliminarArchivosPorTarea(tarea.id)
-                    guardarArchivos(tarea.id)
+                } else {
+                    val tareaVieja = tareaRepository.obtenerTareaStream(tareaActual.id).filterNotNull().first()
+                    tareaVieja.fechasRecordatorio.forEach { fecha ->
+                        alarmaScheduler.cancel(tareaVieja.copy(fechasRecordatorio = listOf(fecha)))
+                    }
+
+                    tareaRepository.actualizarTarea(tareaActual)
+                    tareaGuardada = tareaActual
+                    archivosMultimediaRepository.eliminarArchivosPorTarea(tareaActual.id)
+                    guardarArchivos(tareaActual.id)
                 }
 
-                if (tareaGuardada.fechaRecordatorio != null) {
-                    alarmaScheduler.schedule(tareaGuardada)
+                tareaGuardada.fechasRecordatorio.forEach { fecha ->
+                     alarmaScheduler.schedule(tareaGuardada.copy(fechasRecordatorio = listOf(fecha)))
                 }
 
             } catch (e: Exception) {
@@ -101,7 +123,7 @@ data class TareaUiState(
     val id: Int = 0,
     val titulo: String = "",
     val contenido: String = "",
-    val fechaRecordatorio: Long? = null,
+    val fechasRecordatorio: List<Long> = emptyList(),
     val fotoUri: String? = null,
     val archivos: List<ArchivosMultimedia> = emptyList(),
     val isEntryValid: Boolean = false
@@ -111,7 +133,7 @@ fun Tarea.toTareaUiState(archivos: List<ArchivosMultimedia> = emptyList()): Tare
     id = id,
     titulo = titulo,
     contenido = contenido,
-    fechaRecordatorio = fechaRecordatorio,
+    fechasRecordatorio = fechasRecordatorio,
     fotoUri = fotoUri,
     archivos = archivos,
     isEntryValid = titulo.isNotBlank()
@@ -121,6 +143,6 @@ fun TareaUiState.toTarea(): Tarea = Tarea(
     id = id,
     titulo = titulo,
     contenido = contenido,
-    fechaRecordatorio = fechaRecordatorio,
+    fechasRecordatorio = fechasRecordatorio,
     fotoUri = fotoUri
 )

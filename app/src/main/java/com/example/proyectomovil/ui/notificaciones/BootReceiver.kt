@@ -12,22 +12,18 @@ import kotlinx.coroutines.launch
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
-            // Obtenemos el contenedor de dependencias de la aplicación
             val application = context.applicationContext as ProyectoMovilApplication
             val container = application.container
             val tareaRepository = container.tareaRepository
             val alarmaScheduler = container.alarmaScheduler
 
-            // Lanzamos una corrutina para hacer el trabajo en segundo plano
             CoroutineScope(Dispatchers.IO).launch {
-                // Obtenemos todas las tareas
-                val tareas = tareaRepository.obtenerTodasTareasStream().first()
+                val tareas = tareaRepository.obtenerTodas().first()
                 
-                // Volvemos a programar las alarmas para las tareas con recordatorios futuros
                 tareas.forEach { tarea ->
-                    tarea.fechaRecordatorio?.let {
-                        if (it > System.currentTimeMillis()) {
-                            alarmaScheduler.schedule(tarea)
+                    tarea.fechasRecordatorio.forEach { fecha ->
+                        if (fecha > System.currentTimeMillis()) {
+                            alarmaScheduler.schedule(tarea.copy(fechasRecordatorio = listOf(fecha)))
                         }
                     }
                 }

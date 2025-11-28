@@ -43,9 +43,9 @@ class DetalleTareaViewModel(
     fun eliminarTarea() {
         viewModelScope.launch {
             uiStateDetalle.value.tarea?.let {
-                // Primero cancelamos la alarma
-                alarmaScheduler.cancel(it)
-                // Luego eliminamos la tarea y sus archivos
+                it.fechasRecordatorio.forEach { fecha ->
+                    alarmaScheduler.cancel(it.copy(fechasRecordatorio = listOf(fecha)))
+                }
                 tareaRepository.eliminarTarea(it)
                 archivosMultimediaRepository.eliminarArchivosPorTarea(it.id)
             }

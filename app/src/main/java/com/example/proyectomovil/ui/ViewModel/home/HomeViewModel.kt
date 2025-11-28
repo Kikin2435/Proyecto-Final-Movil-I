@@ -24,7 +24,7 @@ class HomeViewModel(
             initialValue = emptyList()
         )
 
-    private val tareasStream: StateFlow<List<Tarea>> = tareaRepository.obtenerTodasTareasStream()
+    private val tareasStream: StateFlow<List<Tarea>> = tareaRepository.obtenerTodas()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000L),

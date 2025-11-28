@@ -65,7 +65,10 @@ fun PantallaCrearTarea(navController: NavController, tareaId: Int?) {
                 viewModel.guardarTarea()
                 navController.popBackStack()
             },
-            onRemoverArchivo = viewModel::removerArchivo
+            onRemoverArchivo = viewModel::removerArchivo,
+            onAgregarRecordatorio = viewModel::agregarRecordatorio,
+            onRemoverRecordatorio = viewModel::removerRecordatorio,
+            onEditarRecordatorio = viewModel::editarRecordatorio // Añadido
         )
     }
 }
@@ -78,19 +81,30 @@ private fun ContenidoCrearTarea(
     onValueChange: (TareaUiState) -> Unit,
     audioRecorder: AudioRecorder,
     onGuardarClick: () -> Unit,
-    onRemoverArchivo: (ArchivosMultimedia) -> Unit
+    onRemoverArchivo: (ArchivosMultimedia) -> Unit,
+    onAgregarRecordatorio: (Long) -> Unit,
+    onRemoverRecordatorio: (Long) -> Unit,
+    onEditarRecordatorio: (Long, Long) -> Unit // Añadido
 ) {
     val context = LocalContext.current
 
     var mostrarDatePicker by remember { mutableStateOf(false) }
     var mostrarTimePicker by remember { mutableStateOf(false) }
     var fechaSeleccionadaTemp by remember { mutableStateOf<Long?>(null) }
+    var recordatorioAEditar by remember { mutableStateOf<Long?>(null) }
+
     var tempUri by remember { mutableStateOf<Uri?>(null) }
     var audioFile by remember { mutableStateOf<File?>(null) }
     var isRecording by remember { mutableStateOf(false) }
 
-    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = tareaUiState.fechaRecordatorio ?: System.currentTimeMillis())
-    val timePickerState = rememberTimePickerState(initialHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY), initialMinute = Calendar.getInstance().get(Calendar.MINUTE))
+    val calendar = Calendar.getInstance()
+    recordatorioAEditar?.let { calendar.timeInMillis = it }
+
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = recordatorioAEditar ?: System.currentTimeMillis())
+    val timePickerState = rememberTimePickerState(
+        initialHour = calendar.get(Calendar.HOUR_OF_DAY),
+        initialMinute = calendar.get(Calendar.MINUTE)
+    )
 
     val addArchivoToState = { uri: Uri?, tipo: String ->
         uri?.let {
@@ -142,16 +156,27 @@ private fun ContenidoCrearTarea(
                         set(Calendar.HOUR_OF_DAY, timePickerState.hour)
                         set(Calendar.MINUTE, timePickerState.minute)
                     }
-                    onValueChange(tareaUiState.copy(fechaRecordatorio = cal.timeInMillis))
+                    val fechaNueva = cal.timeInMillis
+                    recordatorioAEditar?.let {
+                        onEditarRecordatorio(it, fechaNueva)
+                    } ?: onAgregarRecordatorio(fechaNueva)
+                    
                     mostrarTimePicker = false
+                    recordatorioAEditar = null
                 }) { Text(stringResource(id = R.string.boton_aceptar)) }
             },
-            dismissButton = { Button(onClick = { mostrarTimePicker = false }) { Text(stringResource(id = R.string.boton_cancelar)) } }
+            dismissButton = { Button(onClick = {
+                mostrarTimePicker = false
+                recordatorioAEditar = null 
+            }) { Text(stringResource(id = R.string.boton_cancelar)) } }
         )
     }
     if (mostrarDatePicker) {
         DatePickerDialog(
-            onDismissRequest = { mostrarDatePicker = false },
+            onDismissRequest = { 
+                mostrarDatePicker = false
+                recordatorioAEditar = null
+            },
             confirmButton = {
                 Button(onClick = {
                     datePickerState.selectedDateMillis?.let {
@@ -161,7 +186,10 @@ private fun ContenidoCrearTarea(
                     }
                 }) { Text(stringResource(id = R.string.boton_aceptar)) }
             },
-            dismissButton = { Button(onClick = { mostrarDatePicker = false }) { Text(stringResource(id = R.string.boton_cancelar)) } }
+            dismissButton = { Button(onClick = {
+                mostrarDatePicker = false 
+                recordatorioAEditar = null
+            }) { Text(stringResource(id = R.string.boton_cancelar)) } }
         ) { DatePicker(state = datePickerState) }
     }
 
@@ -171,36 +199,38 @@ private fun ContenidoCrearTarea(
     ) {
         OutlinedTextField(value = tareaUiState.titulo, onValueChange = { onValueChange(tareaUiState.copy(titulo = it)) }, label = { Text(stringResource(id = R.string.campo_titulo)) }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(value = tareaUiState.contenido, onValueChange = { onValueChange(tareaUiState.copy(contenido = it)) }, label = { Text(stringResource(id = R.string.campo_contenido)) }, modifier = Modifier.fillMaxWidth())
-        Box(modifier = Modifier.fillMaxWidth()) {
-            val notificationPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                arrayOf(Manifest.permission.POST_NOTIFICATIONS, Manifest.permission.SCHEDULE_EXACT_ALARM)
-            } else {
-                arrayOf(Manifest.permission.SCHEDULE_EXACT_ALARM)
-            }
-            OutlinedTextField(
-                value = tareaUiState.fechaRecordatorio?.let { formatTimestampToDateTime(it) } ?: "Seleccionar fecha y hora",
-                onValueChange = {},
-                label = { Text(stringResource(id = R.string.campo_fecha)) },
-                readOnly = true,
-                trailingIcon = {
-                    if (tareaUiState.fechaRecordatorio != null) {
-                        IconButton(onClick = { onValueChange(tareaUiState.copy(fechaRecordatorio = null)) }) {
-                            Icon(Icons.Default.Close, contentDescription = "Eliminar recordatorio")
-                        }
-                    } else {
-                        Icon(Icons.Default.DateRange, contentDescription = null)
+        
+        Column {
+            Text(text = stringResource(id = R.string.campo_fecha), style = MaterialTheme.typography.titleMedium)
+            tareaUiState.fechasRecordatorio.forEach {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable {
+                        recordatorioAEditar = it
+                        mostrarDatePicker = true
                     }
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-            // --- CORRECCIÓN: Se elimina el `if` que impedía la edición ---
-            Box(modifier = Modifier.matchParentSize().clickable { 
+                ) {
+                    Text(formatTimestampToDateTime(it), modifier = Modifier.weight(1f))
+                    IconButton(onClick = { onRemoverRecordatorio(it) }) {
+                        Icon(Icons.Default.Close, contentDescription = "Eliminar recordatorio")
+                    }
+                }
+            }
+            Button(onClick = {
+                val notificationPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS, Manifest.permission.SCHEDULE_EXACT_ALARM)
+                } else {
+                    arrayOf(Manifest.permission.SCHEDULE_EXACT_ALARM)
+                }
                 if (notificationPermissions.all { hasPermission(context, it) }) {
+                    recordatorioAEditar = null // Aseguramos que estamos agregando, no editando
                     mostrarDatePicker = true
                 } else {
                     permissionLauncher.launch(notificationPermissions)
                 }
-            })
+            }) {
+                Text("Agregar recordatorio")
+            }
         }
 
         if (!tareaUiState.fotoUri.isNullOrBlank()) {
@@ -230,7 +260,6 @@ private fun ContenidoCrearTarea(
             ActionButton(icon = Icons.Default.CameraAlt, text = "Foto", modifier = Modifier.weight(1f)) {
                 if (hasPermission(context, Manifest.permission.CAMERA)) {
                     tempUri = createMediaUri(context, ".jpg")
-                    // --- CORRECCIÓN: Llamada segura para evitar errores ---
                     tempUri?.let { cameraLauncher.launch(it) }
                 } else {
                     permissionLauncher.launch(arrayOf(Manifest.permission.CAMERA))
@@ -240,7 +269,6 @@ private fun ContenidoCrearTarea(
                 val permissions = arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
                 if (permissions.all { hasPermission(context, it) }) {
                     tempUri = createMediaUri(context, ".mp4")
-                    // --- CORRECCIÓN: Llamada segura para evitar errores ---
                     tempUri?.let { videoLauncher.launch(it) }
                 } else {
                     permissionLauncher.launch(permissions)

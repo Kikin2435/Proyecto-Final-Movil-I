@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import com.example.proyectomovil.data.dao.ArchivosMultimediaDao
 import com.example.proyectomovil.data.dao.NotaDao
 import com.example.proyectomovil.data.dao.NotificacionDao
@@ -15,9 +16,10 @@ import com.example.proyectomovil.data.model.Tarea
 
 @Database(
     entities = [Nota::class, Notificacion::class, ArchivosMultimedia::class, Tarea::class],
-    version = 9,
-     exportSchema = false
+    version = 13, // <-- VERSIÓN INCREMENTADA
+    exportSchema = false
 )
+@TypeConverters(Converters::class)
 abstract class ConfigDB : RoomDatabase(){
     abstract fun notaDao(): NotaDao
     abstract fun notificacionDao(): NotificacionDao

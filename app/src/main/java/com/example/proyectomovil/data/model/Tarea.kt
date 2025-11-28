@@ -10,7 +10,7 @@ data class Tarea(
     val id: Int = 0,
     val titulo: String,
     val contenido: String,
-    val fechaRecordatorio: Long? = null,
+    val fechasRecordatorio: List<Long> = emptyList(),
     val fav: Boolean = false,
     val fotoUri: String? = null
 )
