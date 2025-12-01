@@ -13,6 +13,5 @@ class ArchivosMultimediaRepository(private val dao: ArchivosMultimediaDao){
 
     suspend fun eliminarArchivosPorTarea(tareaId: Int) = dao.eliminarArchivosPorTareaId(tareaId)
 
-    // Nuevo método para llamar al DAO para notas
     suspend fun eliminarArchivosPorNota(notaId: Int) = dao.eliminarArchivosPorNotaId(notaId)
 }

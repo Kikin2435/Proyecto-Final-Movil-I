@@ -259,14 +259,7 @@ private fun ContenidoCrearNota(
                     }
                 }
                 ActionButton(icon = Icons.Default.AttachFile, text = "Adjuntar", modifier = Modifier.weight(1f)) {
-                    val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        arrayOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.READ_MEDIA_AUDIO)
-                    } else {
-                        arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
-                    }
-                    handlePermission(permissions, "archivos y contenido multimedia") {
-                        filePickerLauncher.launch(arrayOf("*/*"))
-                    }
+                    filePickerLauncher.launch(arrayOf("*/*"))
                 }
             }
         } else {

@@ -75,12 +75,12 @@ fun MainScreenRail(navController: NavHostController) {
                     arguments = listOf(
                         navArgument("notaId") {
                             type = NavType.IntType
-                            defaultValue = -1 // -1 indica que no hay ID (modo Crear)
+                            defaultValue = -1
                         }
                     )
                 ) { backStackEntry ->
                     val notaId = backStackEntry.arguments?.getInt("notaId")
-                    // Asumo que PantallaCrearNota está preparada para recibir 'notaId' como Int?
+
                     PantallaCrearNota(
                         navController = navController,
                         notaId = if (notaId != null && notaId != -1) notaId else null

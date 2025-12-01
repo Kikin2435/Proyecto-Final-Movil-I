@@ -16,7 +16,7 @@ import com.example.proyectomovil.data.model.Tarea
 
 @Database(
     entities = [Nota::class, Notificacion::class, ArchivosMultimedia::class, Tarea::class],
-    version = 13, // <-- VERSIÓN INCREMENTADA
+    version = 13,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

@@ -23,7 +23,7 @@ fun PantallaConfiguracion(navController: NavController) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // --- Sección de Idioma ---
+
         LanguageSettings(
             selectedLanguage = uiState.language,
             onLanguageChange = { viewModel.changeLanguage(it) }
@@ -31,7 +31,7 @@ fun PantallaConfiguracion(navController: NavController) {
 
         Divider()
 
-        // --- Sección de Tamaño de Fuente ---
+
         FontSizeSettings(
             selectedSize = uiState.fontSize,
             onSizeChange = { viewModel.changeFontSize(it) }

@@ -42,6 +42,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
+// Define la pantalla principal para crear o editar una tarea.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaCrearTarea(navController: NavController, tareaId: Int?) {
@@ -79,6 +80,7 @@ fun PantallaCrearTarea(navController: NavController, tareaId: Int?) {
     }
 }
 
+// Contiene la interfaz de usuario para los campos de texto, botones y lógica de la pantalla.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ContenidoCrearTarea(
@@ -127,6 +129,7 @@ private fun ContenidoCrearTarea(
         accionConPermiso = null
     }
 
+    // Añade un archivo multimedia al estado de la tarea actual.
     val addArchivoToState = { uri: Uri?, tipo: String ->
         uri?.let {
             try {
@@ -208,6 +211,7 @@ private fun ContenidoCrearTarea(
         ) { DatePicker(state = datePickerState) }
     }
 
+    // Gestiona la solicitud de permisos y ejecuta una acción si son concedidos.
     val handlePermission = { permissions: Array<String>, permissionText: String, action: () -> Unit ->
         if (permissions.all { hasPermission(context, it) }) {
             action()
@@ -337,14 +341,7 @@ private fun ContenidoCrearTarea(
                     }
                 }
                 ActionButton(icon = Icons.Default.AttachFile, text = "Adjuntar", modifier = Modifier.weight(1f)) {
-                    val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        arrayOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.READ_MEDIA_AUDIO)
-                    } else {
-                        arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
-                    }
-                    handlePermission(permissions, "archivos y contenido multimedia") {
-                        filePickerLauncher.launch(arrayOf("*/*"))
-                    }
+                    filePickerLauncher.launch(arrayOf("*/*"))
                 }
             }
         } else {
@@ -395,6 +392,7 @@ private fun ContenidoCrearTarea(
     }
 }
 
+// Un botón de acción reutilizable con un icono y texto.
 @Composable
 private fun ActionButton(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Button(onClick = onClick, modifier = modifier) {
@@ -404,10 +402,12 @@ private fun ActionButton(icon: androidx.compose.ui.graphics.vector.ImageVector, 
     }
 }
 
+// Formatea un timestamp (Long) a una cadena de fecha y hora legible.
 private fun formatTimestampToDateTime(timestamp: Long): String {
     return SimpleDateFormat("dd/MM/yyyy, HH:mm", Locale.getDefault()).format(Date(timestamp))
 }
 
+// Obtiene el nombre de un archivo a partir de su URI de contenido.
 private fun getFileName(context: Context, uri: Uri): String? {
     var fileName: String? = null
     context.contentResolver.query(uri, null, null, null, null)?.use {
@@ -419,6 +419,7 @@ private fun getFileName(context: Context, uri: Uri): String? {
     return fileName
 }
 
+// Crea un archivo multimedia en el almacenamiento externo privado de la app.
 private fun createMediaFile(context: Context, extension: String): File {
     val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
     val mediaFileName = "${extension.uppercase(Locale.ROOT).substring(1)}_${timeStamp}_"
@@ -431,11 +432,13 @@ private fun createMediaFile(context: Context, extension: String): File {
     return File.createTempFile(mediaFileName, extension, storageDir)
 }
 
+// Crea una URI de contenido segura para un archivo multimedia usando FileProvider.
 private fun createMediaUri(context: Context, extension: String): Uri {
     val file = createMediaFile(context, extension)
     return FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
 }
 
+// Encuentra la Activity contenedora a partir de un Context.
 private fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.findActivity()

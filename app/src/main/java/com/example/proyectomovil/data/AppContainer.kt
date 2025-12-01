@@ -15,7 +15,7 @@ interface AppContainer {
     val tareaRepository: TareaRepository
     val archivosMultimediaRepository: ArchivosMultimediaRepository
     val userPreferencesRepository: UserPreferencesRepository
-    val alarmaScheduler: AlarmaScheduler // Agregado
+    val alarmaScheduler: AlarmaScheduler
 }
 
 class AppDataContainer(private val context: Context) : AppContainer {
@@ -31,11 +31,11 @@ class AppDataContainer(private val context: Context) : AppContainer {
         ArchivosMultimediaRepository(ConfigDB.getDatabase(context).archivosMultimediaDao())
     }
 
+    // FUNCION SOLO PARA DETERMINAR EL TAMANIO DEL TEXTO
     override val userPreferencesRepository: UserPreferencesRepository by lazy {
         UserPreferencesRepository(context)
     }
 
-    // Agregado
     override val alarmaScheduler: AlarmaScheduler by lazy {
         TareaAlarmScheduler(context)
     }

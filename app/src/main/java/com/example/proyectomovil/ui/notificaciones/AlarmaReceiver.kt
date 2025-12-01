@@ -13,6 +13,7 @@ import com.example.proyectomovil.R
 
 class AlarmaReceiver : BroadcastReceiver() {
 
+    // Se activa al recibir una alarma para crear y mostrar una notificación.
     override fun onReceive(context: Context, intent: Intent) {
         val tareaId = intent.getIntExtra("EXTRA_TAREA_ID", -1)
         if (tareaId == -1) return

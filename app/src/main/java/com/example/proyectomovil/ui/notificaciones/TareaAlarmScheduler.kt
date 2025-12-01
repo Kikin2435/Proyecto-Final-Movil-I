@@ -10,6 +10,7 @@ class TareaAlarmScheduler(private val context: Context) : AlarmaScheduler {
 
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
+    // Programa una alarma para un recordatorio de tarea específico.
     override fun schedule(tarea: Tarea) {
         val fechaRecordatorio = tarea.fechasRecordatorio.firstOrNull() ?: return
 
@@ -39,6 +40,7 @@ class TareaAlarmScheduler(private val context: Context) : AlarmaScheduler {
         }
     }
 
+    // Cancela una alarma previamente programada para un recordatorio.
     override fun cancel(tarea: Tarea) {
         val fechaRecordatorio = tarea.fechasRecordatorio.firstOrNull() ?: return
         

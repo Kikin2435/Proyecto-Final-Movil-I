@@ -32,11 +32,10 @@ object AppViewModelProvider {
             )
         }
 
-        // --- CORRECCIÓN ---
-        // Le pasamos la instancia de 'Application' al TareaViewModel.
+
         initializer {
             TareaViewModel(
-                proyectoMovilApplication(), // <-- Añadido
+                proyectoMovilApplication(),
                 this.createSavedStateHandle(),
                 proyectoMovilApplication().container.tareaRepository,
                 proyectoMovilApplication().container.archivosMultimediaRepository,
